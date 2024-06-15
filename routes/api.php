@@ -23,4 +23,5 @@ use App\Http\Controllers\Auth\AuthenticationController;
 Route::prefix('auth')->group(function(){
     Route::post('register', [AuthenticationController::class, 'register']);
     Route::post('login', [AuthenticationController::class, 'login']);
+    Route::post('token', [AuthenticationController::class, 'createToken']);
 });
