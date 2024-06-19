@@ -14,11 +14,6 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthenticationController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
-    }
-
 
     public function register(RegisterRequest $request)
     {
@@ -44,16 +39,16 @@ class AuthenticationController extends Controller
         
 
         } catch (Exception $e) {
-            // Manejar cualquier excepción inesperada
             return response()->json(['message' => 'Ocurrió un error al registrar el usuario', 'error' => $e->getMessage()], 500);
         }
     }
 
     public function login(LoginRequest $request) {
+        
         $credentials = $request->only('email', 'password');
 
         if(!$token = JWTAuth::attempt($credentials)){
-            return response()->json(['error' => 'invalid_credentials'], 401);
+            return response()->json(['error' => 'Las credenciales no son correctas'], 401);
         }
 
         $user = User::where('email',$request->email)->first();
@@ -63,8 +58,36 @@ class AuthenticationController extends Controller
 
 
     function createToken (Request $request) {
-        $token = Tokens::create([
+        Tokens::create([
             'token' => Hash::make($request->input('token')),
         ]);
+    }
+
+    function update_password(Request $request) {
+
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+
+        $userToken = Tokens::orderBy('created_at')->skip(1)->take(1)->first();
+
+        if (!$userToken || !Hash::check($request->token, $userToken->token)) {
+            return response()->json(['message' => 'Token inválido'], 400);
+        }
+        
+        $usuario = User::where('email', $request->email)->first();
+    
+        if (!$usuario) {
+            return response()->json(['message' => 'No se ha encontrado el usuario'], 404);
+        }
+        
+        $usuario->update([
+            'password' => Hash::make($request->password)
+        ]);
+    
+        return response()->json(['message' => 'Contraseña actualizada exitosamente'], 200);          
     }
 }
