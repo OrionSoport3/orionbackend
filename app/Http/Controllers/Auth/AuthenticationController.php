@@ -45,7 +45,7 @@ class AuthenticationController extends Controller
 
     public function login(LoginRequest $request) {
         
-        $credentials = $request->only('email', 'password');
+        $credentials = $request->only('email', 'password');        
 
         if(!$token = JWTAuth::attempt($credentials)){
             return response()->json(['error' => 'Las credenciales no son correctas'], 401);
