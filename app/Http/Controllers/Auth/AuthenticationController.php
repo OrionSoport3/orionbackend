@@ -19,7 +19,7 @@ class AuthenticationController extends Controller
     {
         try {
             $userToken = Tokens::first();
-            // Verificar si el token no existe o si la comparación falla
+
             if (!$userToken || !Hash::check($request->token, $userToken->token)) {
                 
                 return response()->json(['message' => 'Token inválido'], 400);
@@ -45,12 +45,11 @@ class AuthenticationController extends Controller
 
     public function login(LoginRequest $request) {
         
-        $credentials = $request->only('email', 'password');        
+        $credentials = $request->only('email', 'password');
 
         if(!$token = JWTAuth::attempt($credentials)){
             return response()->json(['error' => 'Las credenciales no son correctas'], 401);
         }
-
         $user = User::where('email',$request->email)->first();
 
         return response()->json(compact('user', 'token'), 200);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticationController;
@@ -25,4 +26,8 @@ Route::prefix('auth')->group(function(){
     Route::post('login', [AuthenticationController::class, 'login']);
     Route::post('token', [AuthenticationController::class, 'createToken']);
     Route::post('update',[AuthenticationController::class, 'update_password']);
+});
+
+Route::middleware(['auth.jwt'])->group(function () {
+    Route::post('get', [AdminAuthController::class, 'getUsers']);
 });
