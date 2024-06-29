@@ -48,6 +48,9 @@ class AuthenticationController extends Controller
         $credentials = $request->only('email', 'password');
 
         if(!$token = JWTAuth::attempt($credentials)){
+            if(!(User::where('email', $request->email)->first())) {
+                return response()->json(['error' => 'Usuario no encontrado'], 422);
+            }
             return response()->json(['error' => 'Las credenciales no son correctas'], 401);
         }
         $user = User::where('email',$request->email)->first();
