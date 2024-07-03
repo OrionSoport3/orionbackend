@@ -31,4 +31,5 @@ Route::prefix('auth')->group(function(){
 Route::middleware(['auth.jwt'])->group(function () {
     Route::post('get', [AdminAuthController::class, 'getUsers']);
     Route::post('companies', [AdminAuthController::class, 'companies']);
+    Route::post('logout', [AdminAuthController::class, 'logout']);
 });

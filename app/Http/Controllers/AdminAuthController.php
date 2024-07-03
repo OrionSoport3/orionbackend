@@ -6,13 +6,31 @@ use App\Models\Empresas;
 use App\Models\Personal;
 use App\Models\Sucursales;
 use App\Models\User;
+use Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AdminAuthController extends Controller
 {
+    public function __construct() {
+        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+    }
+
+    public function logout() {
+        JWTAuth::parseToken()->invalidate();
+        return response()->json(['message' => 'Logged out successfully'],200);
+    }
+
+    public function isStillLogged() {
+       
+    }
+
     public function getUsers()
     {
-        $user = JWTAuth::parseToken()->authenticate();
+        if(!JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['message' => 'No se ha podido autenticar el usuario']);
+        }
         $allPeople = Personal::all();
         return response()->json(['message' => 'Session is active', 'user' => $allPeople]);
     }
