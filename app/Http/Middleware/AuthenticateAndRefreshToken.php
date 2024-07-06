@@ -19,27 +19,20 @@ class AuthenticateAndRefreshToken
      */
     public function handle(Request $request, Closure $next)
     {
+        try {
+            JWTAuth::parseToken()->authenticate();
+        } catch (TokenExpiredException $e) {
             try {
-                
-                $user = JWTAuth::parseToken()->authenticate();
-
-            } catch (TokenExpiredException $e) {
-                try {
-
-                    $refreshedToken = JWTAuth::refresh(JWTAuth::getToken());
-                    $user = JWTAuth::setToken($refreshedToken)->toUser();
-                    $request->headers->set('Authorization', 'Bearer ' . $refreshedToken);
-
-                } catch (JWTException $e) {
-
-                    return response()->json(['error' => 'Token cannot be refreshed, please login again'], 401);
-
-                }
+                $refreshedToken = JWTAuth::refresh(JWTAuth::getToken());
+                $user = JWTAuth::setToken($refreshedToken)->toUser();
+                $request->headers->set('Authorization', 'Bearer ' . $refreshedToken);
             } catch (JWTException $e) {
-
-                return response()->json(['error' => 'Token is invalid'], 401);
+                return response()->json(['error' => 'Token cannot be refreshed, please login again', 'message' => $e->getMessage()], 401);
             }
-    
-            return $next($request);
-        } 
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Token is invalid', 'message' => $e->getMessage()], 401);
+        }
+
+        return $next($request);
+    }
 }

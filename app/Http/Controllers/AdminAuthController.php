@@ -8,6 +8,7 @@ use App\Models\Empresas;
 use App\Models\Personal;
 use App\Models\Sucursales;
 use App\Models\User;
+use App\Models\Vehiculos;
 use Exception;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -17,7 +18,7 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 class AdminAuthController extends Controller
 {
     public function __construct() {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+        $this->middleware('jwt:api', ['except' => ['login', 'register']]);
     }
 
     public function logout() {
@@ -25,24 +26,12 @@ class AdminAuthController extends Controller
         return response()->json(['message' => 'Logged out successfully'],200);
     }
 
-    public function isStillLogged() {
-       
-    }
+    public function fetchAllInfo() {
 
-    public function getUsers()
-    {
         if(!JWTAuth::parseToken()->authenticate()) {
             return response()->json(['message' => 'No se ha podido autenticar el usuario']);
         }
         $allPeople = Personal::all();
-        return response()->json(['message' => 'Session is active', 'user' => $allPeople]);
-    }
-
-    function companies() {
-        $usuario = JWTAuth::parseToken()->authenticate();
-        if(!$usuario) {
-            return response()->json(['message' => 'No se ha podido auntenticar el usuario']);
-        }
 
         $companis = Empresas::all();
         foreach ($companis as $compani) {
@@ -56,12 +45,34 @@ class AdminAuthController extends Controller
 
             $resultado[] = $empresas_sucursales;
         }
+        return response()->json(['empresas_sucursales' => $resultado, 'personal' => $allPeople]);
 
-        return response()->json(['empresas_sucursales' => $resultado]);
+    }
+
+    function fetchFotos() {
+        $vehiculos = Vehiculos::all();
+
+        $resultadoFotos = [];
+
+        foreach ($vehiculos as $vehiculo) {
+            $fotoPath = $vehiculo->ruta;
+    
+            $fotoUrl = asset($fotoPath);
+    
+            if (file_exists(public_path($fotoPath))) {
+                $resultadoFotos[] = [
+                    'modelo' => $vehiculo->modelo,
+                    'ruta' => $fotoUrl,
+                    'descripcion' => $vehiculo->descripcion,
+                ];
+            }
+        }
+    
+        return response()->json(['fotos' => $resultadoFotos]);
     }
 
     function postActivitie(Request $request) {
-        if (!JWTAuth::parseToken()->authenticate()) {
+        if (!JWTAuth::parseToken($request->token)) {
             return response()->json(['message' => 'No se ha podido auntenticar el usuario']);
         }
 
@@ -70,8 +81,6 @@ class AdminAuthController extends Controller
 
         $actividad = new Actividades;
         
-
-
         foreach ($request->personal as $persona) {
 
             $encargado = Personal::where('nombre', $persona)->get();
@@ -82,5 +91,24 @@ class AdminAuthController extends Controller
         }
 
         return response()->json(['message' => 'autenticado con exito', 'sucursal' => $sucursal, 'empresa' => $empresa], 200);
+    }
+
+    public function guardarFoto(Request $request)
+    {
+        if (!$request->hasFile('foto')) {
+            return response()->json(["message" => 'No se ha encontrado ninguna imagen'], 400);
+        }
+
+        $imageName = time().'.'.$request->foto->extension();
+        $request->foto->move(public_path('vehiculos'), $imageName);
+        $photoPath = 'vehiculos/'.$imageName;
+
+        $vehiculo = Vehiculos::create([
+            'modelo' => $request->modelo,
+            'ruta' => $photoPath,
+            'descripcion' => $request->descripcion,
+        ]);
+
+        return response()->json(["message" => 'Foto guardada con éxito', "vehiculo" => $vehiculo], 200);
     }
 }
