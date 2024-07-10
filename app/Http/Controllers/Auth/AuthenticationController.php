@@ -92,4 +92,9 @@ class AuthenticationController extends Controller
     
         return response()->json(['message' => 'Contraseña actualizada exitosamente'], 200);          
     }
+
+    public function logout() {
+        JWTAuth::parseToken()->invalidate();
+        return response()->json(['message' => 'Logged out successfully'],200);
+    }
 }

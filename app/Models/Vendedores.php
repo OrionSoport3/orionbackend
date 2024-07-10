@@ -5,16 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Actividades extends Model
+class Vendedores extends Model
 {
     use HasFactory;
 
-    protected $table = 'actividades';
 
+    protected $table = 'vendedores';
 
-    public function puente() {
-        return $this->belongsToMany(ActivityPersonal::class, 'actividades_personal');
-    }
+    protected $fillable = [
+        'nombre_vendedor',
+    ];
 
     public $timestamps = false;
 

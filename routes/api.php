@@ -26,12 +26,14 @@ Route::prefix('auth')->group(function(){
     Route::post('login', [AuthenticationController::class, 'login']);
     Route::post('token', [AuthenticationController::class, 'createToken']);
     Route::post('update',[AuthenticationController::class, 'update_password']);
-    Route::post('logout', [AdminAuthController::class, 'logout']);
+    Route::post('logout', [AuthenticationController::class, 'logout']);
 });
 
 Route::middleware(['jwt'])->group(function () {
     Route::post('get', [AdminAuthController::class, 'fetchAllInfo']);
     Route::post('activities', [AdminAuthController::class, 'postActivitie']);
     Route::post('fotos', [AdminAuthController::class, 'fetchFotos']);
+    Route::post('publish_carro', [AdminAuthController::class, 'guardarFoto']);
+    Route::post('new_activity', [AdminAuthController::class, 'postActivitie']);    
 });
 

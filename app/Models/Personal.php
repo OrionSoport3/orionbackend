@@ -13,6 +13,6 @@ class Personal extends Model
 
     public function nombre_personal()
     {
-        return $this->belongsTo(Departamentos::class, 'nombre', 'nombre');
+        return $this->belongsToMany(Departamentos::class, 'actividades_personal');
     }
 }

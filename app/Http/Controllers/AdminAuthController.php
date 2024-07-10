@@ -9,6 +9,7 @@ use App\Models\Personal;
 use App\Models\Sucursales;
 use App\Models\User;
 use App\Models\Vehiculos;
+use App\Models\Vendedores;
 use Exception;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -21,10 +22,7 @@ class AdminAuthController extends Controller
         $this->middleware('jwt:api', ['except' => ['login', 'register']]);
     }
 
-    public function logout() {
-        JWTAuth::parseToken()->invalidate();
-        return response()->json(['message' => 'Logged out successfully'],200);
-    }
+
 
     public function fetchAllInfo() {
 
@@ -45,7 +43,10 @@ class AdminAuthController extends Controller
 
             $resultado[] = $empresas_sucursales;
         }
-        return response()->json(['empresas_sucursales' => $resultado, 'personal' => $allPeople]);
+
+        $vendedores = Vendedores::all();
+
+        return response()->json(['empresas_sucursales' => $resultado, 'personal' => $allPeople, 'vendedor' => $vendedores]);
 
     }
 
@@ -61,6 +62,7 @@ class AdminAuthController extends Controller
     
             if (file_exists(public_path($fotoPath))) {
                 $resultadoFotos[] = [
+                    'carro_id' => $vehiculo->id_vehiculo,
                     'modelo' => $vehiculo->modelo,
                     'ruta' => $fotoUrl,
                     'descripcion' => $vehiculo->descripcion,
@@ -72,25 +74,31 @@ class AdminAuthController extends Controller
     }
 
     function postActivitie(Request $request) {
-        if (!JWTAuth::parseToken($request->token)) {
-            return response()->json(['message' => 'No se ha podido auntenticar el usuario']);
-        }
 
-        $sucursal = Sucursales::where('nombre', $request->sucursal)->first();
-        $empresa = Empresas::where('id_empresa', $sucursal->id_empresa)->first();
+            $empresa = Empresas::where('nombre', $request->empresa)->first();
+            $sucursal = Sucursales::where('nombre', $request->sucursal)->first();
+            $vehiculo = Vehiculos::where('modelo', $request->vehiculo)->first();
+            // return response()->json(['empresa encontrada:' => $empresa, 'sucursal de la empresa encontrada:' => $sucursal, 'vehiculo encontrado' => $vehiculo]);
+            
+            $actividad = new Actividades();
+            $actividad->id_sucursal = $sucursal->id_sucursales;
+            $actividad->id_vehiculo = $vehiculo->id_vehiculo;
+            $actividad->titulo = $request->nombre_proyecto;
+            $actividad->resumen = $request->resume;
+            $actividad->fecha_inicio = $request->fecha_inicial;
+            $actividad->fecha_final = $request->fecha_final;
+            $actividad->save();
+            
+            foreach ($request->personal as $persona) {
+                
+                $encargado = Personal::where('nombre', $persona)->first();
+                $persona = Personal::find($encargado->id);
+                
+                $persona->nombre_personal()->attach($actividad->id_actividades);
+            }
 
-        $actividad = new Actividades;
-        
-        foreach ($request->personal as $persona) {
-
-            $encargado = Personal::where('nombre', $persona)->get();
-
-            $puente = new ActivityPersonal;
-            $puente->id_personal = $encargado->id;
-            $puente->save();
-        }
-
-        return response()->json(['message' => 'autenticado con exito', 'sucursal' => $sucursal, 'empresa' => $empresa], 200);
+            
+            return response()->json(['message' => 'autenticado con exito', 'sucursal' => $sucursal, 'empresa' => $empresa, 'solicitud recibida' => $request], 200);
     }
 
     public function guardarFoto(Request $request)
