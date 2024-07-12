@@ -11,20 +11,14 @@ class ActivityPersonal extends Model
 
     protected $table = 'actividades_personal';
 
-    protected $fillable = ['id_personal'];
-
-    public function muchas_actividades () {
-        return $this->belongsTo(Actividades::class,'', '' );
-    }
+    protected $fillable = ['id_actividades', 'id_personal']; 
 
     public function mucho_personal() {
-        return $this->hasMany(Personal::class, 'id_personal', 'id');
+        return $this->belongsTo(Actividades::class, 'id_actividades', 'id_actividades_personal');
     }
 
     public $timestamps = false;
 
-    protected $primaryKey = null;
-    
-    public $incrementing = false;
-
+    protected $primaryKey = 'id_actividades_personal';  
+    public $incrementing = true;
 }

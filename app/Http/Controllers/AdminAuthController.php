@@ -22,8 +22,6 @@ class AdminAuthController extends Controller
         $this->middleware('jwt:api', ['except' => ['login', 'register']]);
     }
 
-
-
     public function fetchAllInfo() {
 
         if(!JWTAuth::parseToken()->authenticate()) {
@@ -75,6 +73,8 @@ class AdminAuthController extends Controller
 
     function postActivitie(Request $request) {
 
+        $resultado = [];
+
             $empresa = Empresas::where('nombre', $request->empresa)->first();
             $sucursal = Sucursales::where('nombre', $request->sucursal)->first();
             $vehiculo = Vehiculos::where('modelo', $request->vehiculo)->first();
@@ -87,17 +87,23 @@ class AdminAuthController extends Controller
             $actividad->resumen = $request->resume;
             $actividad->fecha_inicio = $request->fecha_inicial;
             $actividad->fecha_final = $request->fecha_final;
+            $actividad->inconvenientes = $request->inconveniente;
+            $actividad->vendedor = $request->vendedor;
+            $actividad->estado = 'EN CURSO';
             $actividad->save();
-            
+
             foreach ($request->personal as $persona) {
                 
                 $encargado = Personal::where('nombre', $persona)->first();
-                $persona = Personal::find($encargado->id);
-                
-                $persona->nombre_personal()->attach($actividad->id_actividades);
-            }
 
-            
+                $puente = ActivityPersonal::create([
+                    'id_actividades' => $actividad->id_actividades,
+                    'id_personal' => $encargado->id,
+                ]);
+                $puente->save();
+                $resultado[] = $puente;
+            }            
+
             return response()->json(['message' => 'autenticado con exito', 'sucursal' => $sucursal, 'empresa' => $empresa, 'solicitud recibida' => $request], 200);
     }
 
@@ -106,7 +112,6 @@ class AdminAuthController extends Controller
         if (!$request->hasFile('foto')) {
             return response()->json(["message" => 'No se ha encontrado ninguna imagen'], 400);
         }
-
         $imageName = time().'.'.$request->foto->extension();
         $request->foto->move(public_path('vehiculos'), $imageName);
         $photoPath = 'vehiculos/'.$imageName;
@@ -119,4 +124,53 @@ class AdminAuthController extends Controller
 
         return response()->json(["message" => 'Foto guardada con éxito', "vehiculo" => $vehiculo], 200);
     }
+
+    function fetchActivities() {
+            try {
+                $resultado_personas = [];
+            $result = [];
+                $activities = Actividades::all();
+                foreach ($activities as $actividad) {
+                    $puente = ActivityPersonal::where('id_actividades', $actividad->id_actividades)->get();
+                    
+                    foreach ($puente as $personitas) {
+                        
+                        $persona = Personal::where('id', $personitas->id_personal)->first();
+                        $nombre_personas = $persona->nombre;
+
+                        $nombres_array = [
+                            'nombre' => $nombre_personas,
+                        ];
+                        
+                        $resultado_personas[] = $nombres_array;
+                    }
+
+                    $sucursal = Sucursales::where('id_sucursales', $actividad->id_sucursal)->first();
+                    $empresa = Empresas::where('id_empresa', $sucursal->id_empresa)->first();
+                    $vehiculo = Vehiculos::where('id_vehiculo', $actividad->id_vehiculo)->first();
+                    
+                    $actividad = [
+                        'id_actividad' => $actividad->id_actividades,
+                        'sucursal' => $sucursal->nombre,
+                        'empresa' => $empresa->nombre,
+                        'titulo' => $actividad->titulo,
+                        'resumen' => $actividad->resumen,
+                        'fecha_inicio' => $actividad->fecha_inicio,
+                        'fecha_final' => $actividad->fecha_final,
+                        'vendedor' => $actividad->vendedor,
+                        'inconvenientes' => $actividad->inconvenientes,
+                        'vehiculo' => $vehiculo->modelo,
+                        'estado' => $actividad->estado,
+                        'personal' => $resultado_personas,
+                    ]; 
+
+                    $result[] = $actividad;
+                }
+                return response()->json(['actividad' => $result], 200);
+            } catch (Exception $th) {
+                return response()->json(['Hubo un error al obtener la información' => $th]);
+            }
+        
+        }
+
 }

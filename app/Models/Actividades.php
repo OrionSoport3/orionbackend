@@ -13,12 +13,13 @@ class Actividades extends Model
 
 
     public function puente() {
-        return $this->belongsToMany(ActivityPersonal::class, 'actividades_personal');
+        return $this->hasMany(ActivityPersonal::class, 'id_actividades', 'id_actividades');
     }
 
     public $timestamps = false;
 
-    protected $primaryKey = null;
+    protected $primaryKey = 'id_actividades';
+
+    public $incrementing = true;
     
-    public $incrementing = false;
 }

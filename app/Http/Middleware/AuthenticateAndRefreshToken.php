@@ -26,6 +26,7 @@ class AuthenticateAndRefreshToken
                 $refreshedToken = JWTAuth::refresh(JWTAuth::getToken());
                 $user = JWTAuth::setToken($refreshedToken)->toUser();
                 $request->headers->set('Authorization', 'Bearer ' . $refreshedToken);
+                return response()->json(['token_refreshed' => $refreshedToken]);
             } catch (JWTException $e) {
                 return response()->json(['error' => 'Token cannot be refreshed, please login again', 'message' => $e->getMessage()], 401);
             }

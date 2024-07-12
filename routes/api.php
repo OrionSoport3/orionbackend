@@ -34,6 +34,7 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('activities', [AdminAuthController::class, 'postActivitie']);
     Route::post('fotos', [AdminAuthController::class, 'fetchFotos']);
     Route::post('publish_carro', [AdminAuthController::class, 'guardarFoto']);
-    Route::post('new_activity', [AdminAuthController::class, 'postActivitie']);    
+    Route::post('new_activity', [AdminAuthController::class, 'postActivitie']);
+    Route::post('get_activities', [AdminAuthController::class, 'fetchActivities']);  
 });
 
