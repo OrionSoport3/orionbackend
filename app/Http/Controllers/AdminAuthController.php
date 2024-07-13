@@ -127,11 +127,11 @@ class AdminAuthController extends Controller
 
     function fetchActivities() {
             try {
-                $resultado_personas = [];
-            $result = [];
+                $result = [];
                 $activities = Actividades::all();
                 foreach ($activities as $actividad) {
                     $puente = ActivityPersonal::where('id_actividades', $actividad->id_actividades)->get();
+                    $resultado_personas = [];
                     
                     foreach ($puente as $personitas) {
                         
@@ -168,7 +168,7 @@ class AdminAuthController extends Controller
                 }
                 return response()->json(['actividad' => $result], 200);
             } catch (Exception $th) {
-                return response()->json(['Hubo un error al obtener la información' => $th]);
+                return response()->json(['Hubo un error al obtener la información' => $th], 500);
             }
         
         }
