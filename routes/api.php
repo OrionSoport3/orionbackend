@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminAuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthenticationController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\ServiceController;
 
 /*
@@ -36,6 +37,11 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('publish_carro', [AdminAuthController::class, 'guardarFoto']);
     Route::post('new_activity', [AdminAuthController::class, 'postActivitie']);
     Route::post('get_activities', [AdminAuthController::class, 'fetchActivities']); 
+
     Route::post('get_service', [ServiceController::class, 'getService']); 
+    Route::post('post_carpeta', [ServiceController::class, 'postFile']); 
+    Route::post('get_carpetas', [ServiceController::class, 'getCarpetas']); 
+
+    Route::post('subir_archivo', [FileController::class, 'upload']); 
 });
 

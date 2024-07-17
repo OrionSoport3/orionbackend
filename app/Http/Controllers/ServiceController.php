@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Actividades;
+use App\Models\Carpetas;
 use App\Models\Empresas;
 use App\Models\Sucursales;
 use App\Models\Vehiculos;
@@ -44,7 +45,29 @@ class ServiceController extends Controller
         } catch (Exception $th) {
             return response()->json(['error' => $th]);
         }
+    }
 
+    function postFile(Request $request) {
+        try {
+            $actividadId = Actividades::find($request['id']['id']);
+    
+            $carpeta = Carpetas::create([
+                'id_actividad' => $actividadId->id_actividades,
+                'nombre' => $request->nombre,
+            ]);
 
+            return response()->json(['Carpeta creada con éxito', $carpeta], 202);
+            
+        } catch (Exception $th) {
+            return response()->json(['Ocurrió un error al crear la carpeta', $th, $request['id']['id'], $request->nombre], 500);
+        }
+
+    }
+
+    function getCarpetas(Request $request) {
+
+        $carpetas = Carpetas::where('id_actividad', $request->id)->get();
+
+        return response()->json(['carpetas' => $carpetas], 200);
     }
 }
