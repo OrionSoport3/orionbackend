@@ -19,7 +19,7 @@ class Vehiculos extends Model
 
     public $timestamps = false;
 
-    protected $primaryKey = null;
+    protected $primaryKey = 'id_vehiculo';
     
     public $incrementing = false;
 

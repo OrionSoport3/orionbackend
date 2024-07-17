@@ -10,5 +10,7 @@ class Empresas extends Model
     use HasFactory;
 
     protected $table = 'empresas';
+
+    protected $primaryKey = 'id_empresa';
     
 }
