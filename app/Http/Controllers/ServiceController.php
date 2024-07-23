@@ -9,6 +9,7 @@ use App\Models\Sucursales;
 use App\Models\Vehiculos;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ServiceController extends Controller
 {
@@ -49,17 +50,27 @@ class ServiceController extends Controller
 
     function postFile(Request $request) {
         try {
-            $actividadId = Actividades::find($request['id']['id']);
+            $validation = $request->validate([
+                'id' => 'required|integer',
+                'nombre' => 'required|string'
+            ], [
+                'id.required' => 'No se ha encontrado un id de la actividad',
+                'nombre.required' => 'El nombre de la carpeta no puede quedar vacío'
+            ]);
+
+            $actividadId = Actividades::find($validation['id']);
     
             $carpeta = Carpetas::create([
                 'id_actividad' => $actividadId->id_actividades,
-                'nombre' => $request->nombre,
+                'nombre' => $validation['nombre'],
             ]);
 
             return response()->json(['Carpeta creada con éxito', $carpeta], 202);
             
+        } catch (ValidationException $ve) {
+            return response()->json(['error' => 'File has not been created', 'message' => $ve->errors()], 422);
         } catch (Exception $th) {
-            return response()->json(['Ocurrió un error al crear la carpeta', $th, $request['id']['id'], $request->nombre], 500);
+            return response()->json(['Ocurrió un error al crear la carpeta', $th, $request['id'], $request->nombre], 500);
         }
 
     }

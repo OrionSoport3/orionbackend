@@ -21,7 +21,7 @@ class FileController extends Controller
                 'id_carpeta' => 'exists:carpetas,id_carpetas',
                 'nombre_carpeta' => 'required|string'
             ]);
-    
+
             $file = $request->file('file');
 
             $carpeta = Carpetas::find($request->id_carpeta);
@@ -63,9 +63,7 @@ class FileController extends Controller
             $actividad = Actividades::where('id_actividades',$request->id_actividad)->first();
             $carpetas = Carpetas::where('id_actividad', $actividad->id_actividades)->get();
 
-            $resultado = [];
             $carpetasArray = [];
-            
             foreach ($carpetas as $carpeta) {
                 $documentos = File::where('id_carpeta', $carpeta->id_carpetas)->get();
                 $documentosArray = [];
@@ -95,7 +93,7 @@ class FileController extends Controller
                     'id_carpeta' => $carpeta->id_carpetas,
                     'id_actividad' => $carpeta->id_actividad,
                     'nombre' => $carpeta->nombre,
-                    'documentos' => $documentosArray
+                    'documentos' => $documentosArray,
                 ];
 
                 $carpetasArray[] = $carpetasDocumentosArray;
