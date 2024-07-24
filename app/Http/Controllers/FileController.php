@@ -73,7 +73,7 @@ class FileController extends Controller
     
                     $carpeta = Carpetas::find($documento->id_carpeta);
                     $id_carpeta = $carpeta->id_carpeta;
-        
+                    
                     $documentUrl = asset($documentPath);
         
                     if (file_exists(public_path($documentPath))) {
