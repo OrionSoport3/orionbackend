@@ -44,5 +44,6 @@ Route::middleware(['jwt'])->group(function () {
 
     Route::post('subir_archivo', [FileController::class, 'upload']); 
     Route::post('ver_archivos', [FileController::class, 'fetchDocuments']); 
+    Route::post('replace_document', [FileController::class, 'replaceDocument']); 
 });
 

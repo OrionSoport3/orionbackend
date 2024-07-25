@@ -16,26 +16,34 @@ class FileController extends Controller
     function upload(Request $request)
     {
         try {
-            $request->validate([
+
+            $validated = $request->validate([
                 'file' => 'required|file',
-                'id_carpeta' => 'exists:carpetas,id_carpetas',
+                'id_carpeta' => 'required|string|integer',
                 'nombre_carpeta' => 'required|string'
             ]);
 
-            $file = $request->file('file');
+            $file = $validated['file'];
 
-            $carpeta = Carpetas::find($request->id_carpeta);
+            $nameFile = $file->getClientOriginalName();
+            $archivo = File::where('name', $nameFile)->where('id_carpeta', $validated['id_carpeta'])->where('mime_type', $validated['file']->getMimeType())->first();
+
+            if ($archivo) {
+                return response()->json(['error' => 'Document already exists in the specified folder'], 409);
+            }
+
+            $saveOriginalName = str_replace(' ', '_', $nameFile);
+            $carpeta = Carpetas::find($validated['id_carpeta']);
             $activividad = Actividades::find($carpeta->id_actividad);
 
             $id_actividad = $activividad->id_actividades;
-            $nombreCarpeta = str_replace(' ', '_', $request->nombre_carpeta);
+            $nombreCarpeta = str_replace(' ', '_', $validated['nombre_carpeta']);
+            $path = $file->storeAs("public/files/$id_actividad/$nombreCarpeta", $saveOriginalName);
 
             if (!Storage::exists("public/files/$id_actividad/$nombreCarpeta")) {
-
                 Storage::makeDirectory("public/files/$id_actividad/$nombreCarpeta");
             }
             
-            $path = $file->store("public/files/$id_actividad/$nombreCarpeta");
             $fileUrl = Storage::url($path);
             $fileModel = new File();
             $fileModel->name = $file->getClientOriginalName();
@@ -48,12 +56,40 @@ class FileController extends Controller
             return response()->json(['message' => 'File uploaded successfully', 'path' => $fileUrl], 201);
     
         } catch (ValidationException $ve) {
-            return response()->json(['error' => 'Validation failed', 'messages' => $ve->errors(), 'valores de request' => ['id' => $request->id_carpeta, 'nombre de la carpeta' => $request->nombre_carpeta, 'documento' => $request->file]], 422);
+            return response()->json(['error' => 'Validation failed', 'messages' => [$ve->errors()], 'valores de request' => ['id' => $request->id_carpeta, 'nombre de la carpeta' => $request->nombre_carpeta, 'documento' => $request->file]], 422);
+
         } catch (Exception $th) {
             Log::error($th->getMessage());
-            return response()->json(['error' => 'File upload failed', 'message' => $th->getMessage()], 500);
-        }
+            return response()->json(['error' => 'File upload failed', 'message' => [$th->getMessage(), $validated]], 500);
 
+        }
+    }
+
+    function replaceDocument (Request $request) {
+        try {
+
+            $validation = $request->validate([
+                'file' => 'required|file',
+                'id_carpeta' => 'required|string',
+                'nombre_carpeta' => 'required|string'
+            ]);
+
+            $getFileName = $validation['file']->getClientOriginalName();
+
+            $archivo = File::where('name', $getFileName)->where('id_carpeta', $validation['id_carpeta'])->where('mime_type', $validation['file']->getMimeType())->first();
+
+            if (!$archivo && !Storage::exists($archivo->content)) {
+                return response()->json(['message' => 'No se ha encontrado el archivo'], 400);
+            }
+
+            $archivo->delete();
+            Storage::delete($archivo->content);
+    
+            return response()->json(['message' => 'File deleted successfully'], 200);
+
+        } catch (Exception $th) {
+            return response()->json(['error' => 'File upload failed', 'message' => [$th->getMessage()]], 500);
+        }
     }
 
     function fetchDocuments(Request $request) {
