@@ -41,6 +41,7 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('get_service', [ServiceController::class, 'getService']); 
     Route::post('post_carpeta', [ServiceController::class, 'postFile']); 
     Route::post('get_carpetas', [ServiceController::class, 'getCarpetas']); 
+    Route::post('delete_carpeta', [ServiceController::class, 'deleteCarpetaAndDocuments']); 
 
     Route::post('subir_archivo', [FileController::class, 'upload']); 
     Route::post('ver_archivos', [FileController::class, 'fetchDocuments']); 

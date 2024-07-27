@@ -48,7 +48,7 @@ class FileController extends Controller
             $fileModel = new File();
             $fileModel->name = $file->getClientOriginalName();
             $fileModel->mime_type = $file->getMimeType();
-            $fileModel->content = $path;
+            $fileModel->content = "public/files/$id_actividad/$nombreCarpeta";
             $fileModel->id_carpeta = $request->input('id_carpeta');
             $fileModel->url = $fileUrl;
             $fileModel->save();
@@ -69,23 +69,41 @@ class FileController extends Controller
         try {
 
             $validation = $request->validate([
-                'file' => 'required|file',
+                'file' => 'required',
                 'id_carpeta' => 'required|string',
                 'nombre_carpeta' => 'required|string'
             ]);
 
-            $getFileName = $validation['file']->getClientOriginalName();
+            $file = $request->file('file');
 
-            $archivo = File::where('name', $getFileName)->where('id_carpeta', $validation['id_carpeta'])->where('mime_type', $validation['file']->getMimeType())->first();
+            if ($file) {
+                $getFileName = $validation['file']->getClientOriginalName();
 
-            if (!$archivo && !Storage::exists($archivo->content)) {
-                return response()->json(['message' => 'No se ha encontrado el archivo'], 400);
+                $archivo = File::where('name', $getFileName)->where('id_carpeta', $validation['id_carpeta'])->where('mime_type', $validation['file']->getMimeType())->first();
+
+                if (!$archivo && !Storage::exists($archivo->content)) {
+                    return response()->json(['message' => 'No se ha encontrado el archivo'], 400);
+                }
+
+                $archivo->delete();
+                Storage::delete($archivo->content);
+        
+                return response()->json(['message' => 'File deleted successfully'], 200);
             }
+            
+            if (is_array($validation['file']) || is_object($validation['file'])) {
+                $archivo = File::where('name', $validation['file']['nombre'])->where('id_carpeta', $validation['id_carpeta'])->where('mime_type', $validation['file']['mime_type'])->first();
 
-            $archivo->delete();
-            Storage::delete($archivo->content);
-    
-            return response()->json(['message' => 'File deleted successfully'], 200);
+                if (!$archivo && !Storage::exists($archivo->content)) {
+                    return response()->json(['message' => 'No se ha encontrado el archivo'], 400);
+                }
+
+                $archivo->delete();
+                Storage::delete($archivo->content);
+        
+                return response()->json(['message' => 'File deleted successfully'], 200);
+
+            }
 
         } catch (Exception $th) {
             return response()->json(['error' => 'File upload failed', 'message' => [$th->getMessage()]], 500);
@@ -106,9 +124,6 @@ class FileController extends Controller
                 
                 foreach ($documentos as $documento) {
                     $documentPath = $documento->url;
-    
-                    $carpeta = Carpetas::find($documento->id_carpeta);
-                    $id_carpeta = $carpeta->id_carpeta;
                     
                     $documentUrl = asset($documentPath);
         
@@ -118,7 +133,7 @@ class FileController extends Controller
                         'nombre' => $documento->name,
                         'documento_url' => $documentUrl,
                         'mime_type' => $documento->mime_type,
-                        'id_carpeta' => $id_carpeta,
+                        'id_carpeta' => $documento->id_carpeta,
                        ];
                     }
 
