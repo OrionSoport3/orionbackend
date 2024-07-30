@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Vehiculos;
 use App\Models\Vendedores;
 use Exception;
+use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -44,8 +45,20 @@ class AdminAuthController extends Controller
 
         $vendedores = Vendedores::all();
 
-        return response()->json(['empresas_sucursales' => $resultado, 'personal' => $allPeople, 'vendedor' => $vendedores]);
+        return response()->json(['empresas_sucursales' => $resultado, 'personal' => $allPeople, 'vendedor' => $vendedores], 200);
 
+    }
+
+    function filtrarInfo (Request $request) {
+        $validation = $request->validate([
+            'fecha' => 'date|string|max:10',
+            'nombre_proyecto' => 'string',
+            'empresa_nombre' => 'array|string',
+        ]);
+
+        $fecha_Info = $validation['fecha'];
+        $nombreInfo = $validation['nombre_proyecto'];
+        $empresaInfo = $validation['empresa_nombre'];
     }
 
     function fetchFotos() {
@@ -168,7 +181,7 @@ class AdminAuthController extends Controller
                 }
                 return response()->json(['actividad' => $result], 200);
             } catch (Exception $th) {
-                return response()->json(['Hubo un error al obtener la información' => $th], 500);
+                return response()->json(['error' => $th->getMessage()], 500);
             }
         
         }
