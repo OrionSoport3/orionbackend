@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ActivitiesFetched;
 use App\Models\Actividades;
 use App\Models\ActivityPersonal;
 use App\Models\Empresas;
@@ -11,16 +12,14 @@ use App\Models\User;
 use App\Models\Vehiculos;
 use App\Models\Vendedores;
 use Exception;
-use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AdminAuthController extends Controller
 {
     public function __construct() {
-        $this->middleware('jwt:api', ['except' => ['login', 'register']]);
+        $this->middleware('jwt:api', ['except' => ['login', 'register', 'get_activities']]);
     }
 
     public function fetchAllInfo() {
@@ -138,9 +137,107 @@ class AdminAuthController extends Controller
         return response()->json(["message" => 'Foto guardada con éxito', "vehiculo" => $vehiculo], 200);
     }
 
-    function fetchActivities() {
+    function fetchActivities(Request $request) {
             try {
                 $result = [];
+
+                if ($request->all()) {
+                    $validates = $request->validate([
+                        'fecha_inicio' => 'string',
+                        'fecha_final' => 'string',
+                        'nombre_actividad' => 'string',
+                        'empresas' => 'array',
+                    ]);
+        
+                    $fecha_inicio = $validates['fecha_inicio'];
+                    $fecha_final = $validates['fecha_final'];
+                    $busqueda = $validates['nombre_actividad'];
+                    $empresas = $validates['empresas'];
+
+
+        
+                    if ($fecha_inicio && $fecha_final && $busqueda && $empresas) {
+
+                        $sucursalesBuscar = [];
+                        $actividadesBusqueda = [];
+
+                        foreach ($empresas as $empresa) {
+                            $sucursales = Sucursales::where('id_empresa', $empresa)->select('id_sucursales', 'id_empresa', 'nombre')->get();
+
+                            foreach ($sucursales as $sucursal) {
+                                $sucursalesBuscar[] = $sucursal;
+                            }
+
+                        }
+                        
+                        if (empty($sucursalesBuscar)) {
+                            return response()->json(['sin_sucursales' => 'No se han encontrado sucursales con los datos proporcionados']);
+                        }
+                        
+
+                        foreach ($sucursalesBuscar as $suc) {
+
+                            $busquedaFechas = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final)->where('titulo', 'ilike', "%$busqueda%")->where('id_sucursal',$suc->id_sucursales)->first();
+                            
+                            if ($busquedaFechas) {
+                                # code...
+                                $actividadesBusqueda[] = $busquedaFechas;
+                            }
+
+                        }
+
+                        if (empty($actividadesBusqueda)) {
+                            return response()->json(['message' => 'No se han encontrado actividades con los datos proporcionados'], 404);
+                        }
+                        
+
+                        foreach ($actividadesBusqueda as $activity) {
+
+                            $puente = ActivityPersonal::where('id_actividades', $activity->id_actividades)->get();
+                            $resultado_personas = [];
+
+                            foreach ($puente as $personaX) {
+                                $persona = Personal::where('id', $personaX->id_personal)->select('id','nombre')->first();
+
+                                $nombres_array = [
+                                    'nombre' => $persona
+                                ];
+
+                                $resultado_personas[] = $nombres_array;
+
+                            }
+
+                            $sucursal = Sucursales::where('id_sucursales',$activity->id_sucursal)->select('id_sucursales', 'id_empresa', 'nombre')->first();
+                            $empresa = Empresas::where('id_empresa', $sucursal->id_empresa)->first();
+                            $vehiculo = Vehiculos::where('id_vehiculo', $activity->id_vehiculo)->select('id_vehiculo', 'modelo')->first();
+
+                           $resultado_actividades = [
+                            'id_actividad' => $activity->id_actividades,
+                            'sucursal' => $sucursal->nombre,
+                            'empresa' => $empresa->nombre,
+                            'titulo' => $activity->titulo,
+                            'resumen' => $activity->resumen,
+                            'fecha_inicio' => $activity->fecha_inicio,
+                            'fecha_final' => $activity->fecha_final,
+                            'vendedor' => $activity->vendedor,
+                            'inconvenientes' => $activity->inconvenientes,
+                            'vehiculo' => $vehiculo->modelo,
+                            'estado' => $activity->estado,
+                            'personal' => $resultado_personas,
+                           ]; 
+                           
+                           $result[] = $resultado_actividades;
+                            
+                        }
+
+                        Log::info('Emitiendo evento ActivitiesFetched con datos:', $result);
+
+                        event(new ActivitiesFetched($result));
+
+                        return response()->json(['actividades' => $result],200);
+                    }
+                }
+
                 $activities = Actividades::all();
                 foreach ($activities as $actividad) {
                     $puente = ActivityPersonal::where('id_actividades', $actividad->id_actividades)->get();
@@ -179,7 +276,13 @@ class AdminAuthController extends Controller
 
                     $result[] = $actividad;
                 }
-                return response()->json(['actividad' => $result], 200);
+
+                Log::info('Emitiendo evento ActivitiesFetched con datos:', $result);
+
+                event(new ActivitiesFetched($result));
+
+                return response()->json(['actividades' => $result],200);
+
             } catch (Exception $th) {
                 return response()->json(['error' => $th->getMessage()], 500);
             }
