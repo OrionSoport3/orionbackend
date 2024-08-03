@@ -44,13 +44,3 @@
 //     });
 // }
 
-// resources/assets/js/bootstrap.js
-
-import Echo from "laravel-echo"
-
-window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: '07f871ddb43ea7c54a41',
-    cluster: 'us2',
-    encrypted: true
-});

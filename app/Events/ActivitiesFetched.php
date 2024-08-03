@@ -5,15 +5,21 @@ namespace App\Events;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Tymon\JWTAuth\Facades\JWTAuth;
+
 
 class ActivitiesFetched implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $result;
+    
+
+    public array $result;
+    public $userId;
 
     /**
      * Create a new event instance.
@@ -23,16 +29,12 @@ class ActivitiesFetched implements ShouldBroadcast
     public function __construct($result)
     {
         $this->result = $result;
+        $this->userId = JWTAuth::parseToken()->authenticate()->id;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return \Illuminate\Broadcasting\Channel|array
-     */
     public function broadcastOn()
     {
-        return new Channel('activities-channel');
+        return new PrivateChannel('activities-channel.' . $this->userId);
     }
 
     public function broadcastAs()

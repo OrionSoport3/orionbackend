@@ -37,6 +37,7 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('publish_carro', [AdminAuthController::class, 'guardarFoto']);
     Route::post('new_activity', [AdminAuthController::class, 'postActivitie']);
     Route::post('get_activities', [AdminAuthController::class, 'fetchActivities']); 
+    Route::post('userId', [AdminAuthController::class, 'getUserIdAUTH']); 
 
     Route::post('get_service', [ServiceController::class, 'getService']); 
     Route::post('post_carpeta', [ServiceController::class, 'postFile']); 
@@ -48,5 +49,6 @@ Route::middleware(['jwt'])->group(function () {
     Route::post('ver_archivos', [FileController::class, 'fetchDocuments']); 
     Route::post('replace_document', [FileController::class, 'replaceDocument']); 
 });
+
 
 

@@ -142,6 +142,7 @@ class AdminAuthController extends Controller
                 $result = [];
 
                 if ($request->all()) {
+                    
                     $validates = $request->validate([
                         'fecha_inicio' => 'string',
                         'fecha_final' => 'string',
@@ -153,8 +154,6 @@ class AdminAuthController extends Controller
                     $fecha_final = $validates['fecha_final'];
                     $busqueda = $validates['nombre_actividad'];
                     $empresas = $validates['empresas'];
-
-
         
                     if ($fecha_inicio && $fecha_final && $busqueda && $empresas) {
 
@@ -171,7 +170,7 @@ class AdminAuthController extends Controller
                         }
                         
                         if (empty($sucursalesBuscar)) {
-                            return response()->json(['sin_sucursales' => 'No se han encontrado sucursales con los datos proporcionados']);
+                            return response()->json(['message' => 'No se han encontrado sucursales con los datos proporcionados', 'empresas' => [$sucursalesBuscar, $empresas]], 404);
                         }
                         
 
@@ -199,11 +198,8 @@ class AdminAuthController extends Controller
                             foreach ($puente as $personaX) {
                                 $persona = Personal::where('id', $personaX->id_personal)->select('id','nombre')->first();
 
-                                $nombres_array = [
-                                    'nombre' => $persona
-                                ];
 
-                                $resultado_personas[] = $nombres_array;
+                                $resultado_personas[] = $persona;
 
                             }
 
@@ -230,11 +226,10 @@ class AdminAuthController extends Controller
                             
                         }
 
-                        Log::info('Emitiendo evento ActivitiesFetched con datos:', $result);
 
-                        event(new ActivitiesFetched($result));
+                        event(new ActivitiesFetched(['actividad' => $result]));
 
-                        return response()->json(['actividades' => $result],200);
+                        return response()->json(['actividad' => $result],200);
                     }
                 }
 
@@ -277,16 +272,25 @@ class AdminAuthController extends Controller
                     $result[] = $actividad;
                 }
 
-                Log::info('Emitiendo evento ActivitiesFetched con datos:', $result);
+                event(new ActivitiesFetched(['actividad' => $result]));
 
-                event(new ActivitiesFetched($result));
+                return response()->json(['actividad' => $result],200);
 
-                return response()->json(['actividades' => $result],200);
-
-            } catch (Exception $th) {
-                return response()->json(['error' => $th->getMessage()], 500);
+            } catch (\Throwable $th) {
+                return response()->json(['message' => $th->getMessage()], 500);
             }
         
+        }
+
+        
+        public function getUserIdAUTH(Request $request)
+        {
+            try {
+                $user = JWTAuth::parseToken()->authenticate();
+                return response()->json(['user_id' => $user->id]);
+            } catch (Exception $e) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
         }
 
 }
