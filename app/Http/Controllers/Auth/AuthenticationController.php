@@ -44,7 +44,9 @@ class AuthenticationController extends Controller
     }
 
     public function login(LoginRequest $request) {
-        
+
+        try {
+                    
         $credentials = $request->only('email', 'password');
 
         if(!$token = JWTAuth::attempt($credentials)){
@@ -56,6 +58,10 @@ class AuthenticationController extends Controller
         $user = User::where('email',$request->email)->first();
 
         return response()->json(compact('user', 'token'), 200);
+        } catch (\Throwable $th) {
+            return response()->json(['Error al iniciar sesion:', $th->getMessage()]);
+        }
+
     }
 
 
