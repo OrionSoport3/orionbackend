@@ -15,6 +15,7 @@ use Exception;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use PhpParser\Node\Stmt\Return_;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AdminAuthController extends Controller
@@ -187,6 +188,8 @@ class AdminAuthController extends Controller
 
                     function BuscarActividades(EloquentCollection $activities) {
                         if ($activities->isEmpty()) {
+                            event(new ActivitiesFetched(['actividad' => []]));
+
                             return response()->json(['actividad' => []], 200);
                         }
                     
@@ -251,71 +254,81 @@ class AdminAuthController extends Controller
 
                         return $sucursalesBuscar;
                     }
+
+                    
                     
                                         
                     switch ($case) {
                         case '11111':
-                            $sucursalesBuscar = BuscarSucursales($empresas);
-                            $actividadesBusqueda = EloquentCollection::make();;
-
-                            foreach ($sucursalesBuscar as $suc) {
-
-                                $actividades = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final)->where('titulo', 'ilike', "%$busqueda%")->where('id_sucursal',$suc->id_sucursales)->where('estado', $estado)->get();
-                                $actividadesBusqueda = $actividadesBusqueda->merge($actividades);
+                            function HacerTodaLaChamba (array $empresas, $fecha_inicio, $fecha_final, $busqueda,array $estado) {
+                                $sucursalesBuscar = BuscarSucursales($empresas);
+                                    $actividadesBusqueda = EloquentCollection::make();;
+        
+                                    foreach ($sucursalesBuscar as $suc) {
+        
+                                        $actividades = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final)->where('titulo', 'ilike', "%$busqueda%")->where('id_sucursal',$suc->id_sucursales)->whereIn('estado', $estado)->get();
+                                        $actividadesBusqueda = $actividadesBusqueda->merge($actividades);
+                                    }
+        
+                                    if ($actividadesBusqueda->isEmpty()) {
+                                        return response()->json(['actividad' => []], 200);
+                                    }
+        
+                                    return BuscarActividades($actividadesBusqueda);
+                            }
+                            switch ($casosEstados) {
+                                case '1000':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["EN CURSO", "FINALIZADO", "CANCELADO"]);
+                                case '0100':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["EN CURSO"]);
+                                case '0010':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["CANCELADO"]);
+                                case '0001':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["FINALIZADO"]);
+                                case '0011':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["FINALIZADO", "CANCELADO"]);
+                                case '0111':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["EN CURSO", "FINALIZADO", "CANCELADO"]);
+                                case '0101':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["EN CURSO", "FINALIZADO"]);
+                                case '0110':
+                                    return HacerTodaLaChamba($empresas, $fecha_inicio, $fecha_final, $busqueda, ["EN CURSO","CANCELADO"]);
+                                default:
+                                    return response()->json(['actividad' => []]);
+                            }
+                        case '11001':
+                            $actividades = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final);
+                            switch ($casosEstados) {
+                                case '1000':
+                                    $actividades = $actividades->get();
+                                    return BuscarActividades($actividades);
+                                case '0100':
+                                    $actividades = $actividades->where('estado', "EN CURSO")->get();
+                                    return BuscarActividades($actividades);
+                                case '0010':
+                                    $actividades = $actividades->where('estado', "CANCELADO")->get();
+                                    return BuscarActividades($actividades);
+                                case '0001':
+                                    $actividades = $actividades->where('estado', "FINALIZADO")->get();
+                                    return BuscarActividades($actividades);
+                                case '0011':
+                                    $actividades = $actividades->whereIn('estado', ["CANCELADO", "FINALIZADO"])->get();
+                                    return BuscarActividades($actividades);
+                                case '0111':
+                                    $actividades =$actividades->whereIn('estado', ["CANCELADO", "FINALIZADO", "EN CURSO"])->get();
+                                    return BuscarActividades($actividades);
+                                case '0101':
+                                    $actividades = $actividades->whereIn('estado', ["EN CURSO", "FINALIZADO"])->get();
+                                    return BuscarActividades($actividades);
+                                case '0110':
+                                    $actividades = $actividades->whereIn('estado', ["EN CURSO", "CANCELADO"])->get();
+                                    return BuscarActividades($actividades);
+                                default:
+                                    return response()->json(['actividad' => []]);
                             }
 
-                            if ($actividadesBusqueda->isEmpty()) {
-                                return response()->json(['message' => 'No se han encontrado actividades con los datos proporcionados',], 404);
-                            }
 
-                            return BuscarActividades($actividadesBusqueda);
-
-                        case '11000':
-
-                            $actividades = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final)->get();
-
-                            foreach ($actividades as $actividad) {
-                                $puente = ActivityPersonal::where('id_actividades', $actividad->id_actividades)->get();
-                                $resultado_personas = [];
-                                
-                                foreach ($puente as $personitas) {
-                                    
-                                    $persona = Personal::where('id', $personitas->id_personal)->first();
-                                    $nombre_personas = $persona->nombre;
-            
-                                    $nombres_array = [
-                                        'nombre' => $nombre_personas,
-                                    ];
-                                    
-                                    $resultado_personas[] = $nombres_array;
-                                }
-            
-                                $sucursal = Sucursales::where('id_sucursales', $actividad->id_sucursal)->first();
-                                $empresa = Empresas::where('id_empresa', $sucursal->id_empresa)->first();
-                                $vehiculo = Vehiculos::where('id_vehiculo', $actividad->id_vehiculo)->first();
-                                
-                                $actividad = [
-                                    'id_actividad' => $actividad->id_actividades,
-                                    'sucursal' => $sucursal->nombre,
-                                    'empresa' => $empresa->nombre,
-                                    'titulo' => $actividad->titulo,
-                                    'resumen' => $actividad->resumen,
-                                    'fecha_inicio' => $actividad->fecha_inicio,
-                                    'fecha_final' => $actividad->fecha_final,
-                                    'vendedor' => $actividad->vendedor,
-                                    'inconvenientes' => $actividad->inconvenientes,
-                                    'vehiculo' => $vehiculo->modelo,
-                                    'estado' => $actividad->estado,
-                                    'personal' => $resultado_personas,
-                                ]; 
-            
-                                $result[] = $actividad;
-                            }
-            
-                            event(new ActivitiesFetched(['actividad' => $result]));
-            
-                            return response()->json(['actividad' => $result], 200);
-                        case '00100':
+                        case '00101':
                             $actividades = Actividades::where('titulo', 'ilike', "%$busqueda%")->get();
 
                             foreach ($actividades as $actividad) {
@@ -359,7 +372,7 @@ class AdminAuthController extends Controller
                             event(new ActivitiesFetched(['actividad' => $result]));
             
                             return response()->json(['actividad' => $result], 200);
-                        case '00010':
+                        case '00011':
                             $sucursalesBuscar = [];
                             $actividadesBusqueda = [];
 
@@ -439,15 +452,31 @@ class AdminAuthController extends Controller
                                     $actividades = Actividades::all();
                                     return BuscarActividades($actividades);
                                 case '0100':
+                                    $actividades = Actividades::where('estado', "EN CURSO")->get();
+                                    return BuscarActividades($actividades);
+                                case '0010':
+                                    $actividades = Actividades::where('estado', "CANCELADO")->get();
+                                    return BuscarActividades($actividades);
+                                case '0001':
+                                    $actividades = Actividades::where('estado', "FINALIZADO")->get();
+                                    return BuscarActividades($actividades);
                                 case '0110':
+                                    $actividades = Actividades::whereIn('estado', ['EN CURSO', 'CANCELADO'])->get();
+                                    return BuscarActividades($actividades);
                                 case '0111':
+                                    $actividades = Actividades::whereIn('estado', ['EN CURSO', 'CANCELADO', 'FINALIZADO'])->get();
+                                    return BuscarActividades($actividades);
                                 case '0101':
+                                    $actividades = Actividades::whereIn('estado', ['EN CURSO, FINALIZADO'])->get();
+                                    return BuscarActividades($actividades);
                                 case '0011':
+                                    $actividades = Actividades::whereIn('estado', ['FINALIZADO', 'CANCELADO'])->get();
+                                    return BuscarActividades($actividades);
                             }
-                        case '11100':
+                        case '11101':
                             $actividades = Actividades::where('fecha_inicio', '>=', $fecha_inicio)->where('fecha_final', '<=', $fecha_final)->where('titulo', 'ilike', "%$busqueda%")->get();
                             return BuscarActividades($actividades);
-                        case '00110':
+                        case '00111':
                             $sucursalesBuscar = [];
                             $actividadesBusqueda = [];
 
@@ -521,56 +550,12 @@ class AdminAuthController extends Controller
                             event(new ActivitiesFetched(['actividad' => $result]));
 
                             return response()->json(['actividad' => $result],200);
-                        case '11010':
-
+                        case '11011':
                         default:
                         return response()->json(['Los datos obtenidos no han arrojado ninguna busqueda', $case]);
                     }
 
                 }
-
-                // $activities = Actividades::all();
-                // foreach ($activities as $actividad) {
-                //     $puente = ActivityPersonal::where('id_actividades', $actividad->id_actividades)->get();
-                //     $resultado_personas = [];
-                    
-                //     foreach ($puente as $personitas) {
-                        
-                //         $persona = Personal::where('id', $personitas->id_personal)->first();
-                //         $nombre_personas = $persona->nombre;
-
-                //         $nombres_array = [
-                //             'nombre' => $nombre_personas,
-                //         ];
-                        
-                //         $resultado_personas[] = $nombres_array;
-                //     }
-
-                //     $sucursal = Sucursales::where('id_sucursales', $actividad->id_sucursal)->first();
-                //     $empresa = Empresas::where('id_empresa', $sucursal->id_empresa)->first();
-                //     $vehiculo = Vehiculos::where('id_vehiculo', $actividad->id_vehiculo)->first();
-                    
-                //     $actividad = [
-                //         'id_actividad' => $actividad->id_actividades,
-                //         'sucursal' => $sucursal->nombre,
-                //         'empresa' => $empresa->nombre,
-                //         'titulo' => $actividad->titulo,
-                //         'resumen' => $actividad->resumen,
-                //         'fecha_inicio' => $actividad->fecha_inicio,
-                //         'fecha_final' => $actividad->fecha_final,
-                //         'vendedor' => $actividad->vendedor,
-                //         'inconvenientes' => $actividad->inconvenientes,
-                //         'vehiculo' => $vehiculo->modelo,
-                //         'estado' => $actividad->estado,
-                //         'personal' => $resultado_personas,
-                //     ]; 
-
-                //     $result[] = $actividad;
-                // }
-
-                // event(new ActivitiesFetched(['actividad' => $result]));
-
-                // return response()->json(['actividad' => $result],200);
 
             } catch (\Throwable $th) {
                 return response()->json(['message' => $th->getMessage()], 500);

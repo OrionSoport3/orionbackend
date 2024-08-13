@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PATCH', 'PUT'],
 
-    'allowed_origins' => ['http://192.168.10.44:3000'],
+    'allowed_origins' => ['http://192.168.10.200:3000'],
 
     'allowed_origins_patterns' => ['*'],
 
